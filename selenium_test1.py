@@ -7,19 +7,16 @@ from selenium.common.exceptions import NoSuchElementException
 #from bs4 import BeautifulSoup
 import time
 import configparser
-
 #import urllib.request
 #import ssl
 #from dotenv import load_dotenv
 #import os
 #import json
-
 from selenium.webdriver.common.by import By
-
 from sys import exit
-from urllib.parse import urlparse, parse_qs
+#from urllib.parse import urlparse, parse_qs
 #import numpy as np
-from selenium.webdriver.chrome.service import Service
+#from selenium.webdriver.chrome.service import Service
 
 
 #driver = webdriver.Chrome()
@@ -52,11 +49,14 @@ password.send_keys(valor_parametro2)
 login = driver.find_element("css selector", "button[type='submit']").click()
 resp = driver.page_source 
 
-
-driver.get('https://www.facebook.com/groups/chamba.dev')
+driver.get('https://www.facebook.com/groups/819815298473126')
 selector_imagen = [
     "div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6 > a > div > div > div > div>img",
     "div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xat24cr.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1jx94hy.x8cjs6t.x1ch86jh.x80vd3b.xckqwgs.x13fuv20.xu3j5b3.x1q0q8m5.x26u7qi.x178xt8z.xm81vs4.xy80clv.xfh8nwu.xoqspk4.x12v9rci.x138vmkv.x6ikm8r.x10wlt62.x16n37ib.xq8finb > div > div > div.html-div.xdj266r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6.x1mh8g0r.x11i5rnm.xod5an3 > div > a > div > div > div > div > img"
+]
+selectores_imagenes=[
+     "div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div > div > div.x1n2onr6 > div.x1n2onr6",
+     "div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6 > div > div > div.x1n2onr6 > div.x1n2onr6"
 ]
 
 def obtener_hijos():
@@ -72,12 +72,10 @@ def obtener_hijos():
     except Exception as e:                                         
         print(f"Error al obtener hijos: {e}")
         return []
-
 def scroll_hasta_el_final(driver):
     # Obtener la altura total de la página
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     time.sleep(8) 
-
 def buscar_imagen(selector_imagen, elemento_base):
     for selector in selector_imagen:
         try:
@@ -88,18 +86,25 @@ def buscar_imagen(selector_imagen, elemento_base):
     return "sin imagen"
 def obtener_imagenes(div_global_info_post):
     try :
-         nodo_base = div_global_info_post.find_element(By.CSS_SELECTOR,"div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div > div > div.x1n2onr6 > div.x1n2onr6")
-         child_divs = nodo_base.find_elements(By.CSS_SELECTOR, "div.x6ikm8r.x10wlt62.x10l6tqk")
-         y=0
+         
+         try:
+            post_imagenes = div_global_info_post.find_element(By.CSS_SELECTOR,
+                "div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div > div > div.x1n2onr6 > div.x1n2onr6")
+            # Si se encuentra post_imagenes, buscamos sus divs hijos
+            child_divs = post_imagenes.find_elements(By.CSS_SELECTOR, "div.x6ikm8r.x10wlt62.x10l6tqk")
+         except NoSuchElementException:
+            # Si no se encuentra post_imagenes, buscamos en post_imagenes_inside
+            post_imagenes_inside = div_global_info_post.find_element(By.CSS_SELECTOR,
+                "div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd  > div.html-div.xdj266r.xat24cr.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1jx94hy.x8cjs6t.x1ch86jh.x80vd3b.xckqwgs.x13fuv20.xu3j5b3.x1q0q8m5.x26u7qi.x178xt8z.xm81vs4.xso031l.xy80clv.xfh8nwu.xoqspk4.x12v9rci.x138vmkv.x6ikm8r.x10wlt62.x16n37ib.xq8finb > div > div > div.html-div.xdj266r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6.x1mh8g0r.x11i5rnm.xod5an3 > div > div > div.x1n2onr6 > div.x1n2onr6")          
+            
+            child_divs = post_imagenes_inside.find_elements(By.CSS_SELECTOR, "div.x6ikm8r.x10wlt62.x10l6tqk")
+        
          for div_1 in child_divs:
-                            
-                y+=1
-                enlace1= div_1.find_element(By.CSS_SELECTOR, "a > div > div > div > img").get_attribute('src')
-                #print("enlace de imagen de varias: ",enlace1)
-                #print("enlace de la imagen", y  )
-                yield enlace1
+            enlace1 = div_1.find_element(By.CSS_SELECTOR, "a > div > div > div > img").get_attribute('src')
+            yield enlace1
     except NoSuchElementException:
                 yield 'aqui no hay imagenes'
+
 def extraer_datos():
     elementos_vistos = set()
     event =True  
@@ -157,33 +162,5 @@ def extraer_datos():
                 event=False
                 break;
         
-        
-
 for dato in extraer_datos():
     print('next :')
-
-        
-
-
-#nombres = []  # Lista para almacenar los datos
-#data_generator = extraer_datos()
-
-
-    
-
-'''div_global_info_post =driver.find_element(By.CSS_SELECTOR, "div.x1n2onr6.x1ja2u2z > div:not([class]) > div:not([class]) > div > div > div > div > div > div > div:not([class]) > div > div")
-                        
-                        div_cabecera_post = div_global_info_post.find_element(By.CSS_SELECTOR, "div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1iyjqo2 > div")
-                        #div_cabecera_post= div_global_info_post.find_element(By.XPATH, ".//div[@class='html-div xdj266r x11i5rnm xat24cr x1mh8g0r xexx8yu x4uap5 x18d9i69 xkhd6sd']/div/div[@class='html-div xdj266r x11i5rnm xat24cr x1mh8g0r xexx8yu x4uap5 x18d9i69 xkhd6sd x1iyjqo2']/div")
-                        #div_post_person_name= div_cabecera_post.find_element(By.XPATH, ".//div[@class='xu06os2 x1ok221b']/span/h2")
-                        div_post_person_name = div_cabecera_post.find_element(By.CSS_SELECTOR, "div.xu06os2.x1ok221b > span > h2 > span > span > a ")
-
-                        #href_value = div_cabecera_post.find_element(By.XPATH, ".//div[@class='xu06os2 x1ok221b']/span/div/span/span/span/a").get_attribute("href")
-
-                        print("username: ",  div_post_person_name.text)
-                        #print("enlace: ",  href_value)
-
-               )'''
-#driver.quit()
-
-
