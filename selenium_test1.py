@@ -34,7 +34,14 @@ config.read('credentials.conf')
 
 valor_parametro1 = config.get('DEFAULT','usernamekey')
 valor_parametro2 = config.get('DEFAULT','passwordkey')
-
+group_links = [
+    #'https://www.facebook.com/groups/chamba.dev',
+    'https://www.facebook.com/groups/1444669812310758',
+    'https://www.facebook.com/groups/820135186662129',
+    'https://www.facebook.com/groups/315599014441'
+    
+    # Agrega más enlaces de grupos aquí
+]
 # login
 time.sleep(3)
 target_url = 'https://www.facebook.com/login/'
@@ -47,7 +54,8 @@ password.send_keys(valor_parametro2)
 login = driver.find_element("css selector", "button[type='submit']").click()
 resp = driver.page_source 
 
-driver.get('https://www.facebook.com/groups/chamba.dev')
+#driver.get('https://www.facebook.com/groups/chamba.dev')
+
 selector_imagen = [
     "div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6 > a > div > div > div > div>img",
     "div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xat24cr.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1jx94hy.x8cjs6t.x1ch86jh.x80vd3b.xckqwgs.x13fuv20.xu3j5b3.x1q0q8m5.x26u7qi.x178xt8z.xm81vs4.xy80clv.xfh8nwu.xoqspk4.x12v9rci.x138vmkv.x6ikm8r.x10wlt62.x16n37ib.xq8finb > div > div > div.html-div.xdj266r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6.x1mh8g0r.x11i5rnm.xod5an3 > div > a > div > div > div > div > img"
@@ -57,8 +65,11 @@ selectors_modal = [
     "div.__fb-dark-mode.xnkg4db.xwsalez.x13ywhbb.x178cd7z.x1n2onr6.xzkaem6 div.x1i10hfl.xjqpnuy.xa49m3k.xqeqjp1.x2hbi6w.x13fuv20.xu3j5b3.x1q0q8m5.x26u7qi.x1ypdohk.xdl72j9.x2lah0s.xe8uvvx.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.x2lwn1j.xeuugli.x16tdsg8.x1hl2dhg.xggy1nq.x1ja2u2z.x1t137rt.x1q0g3np.x87ps6o.x1lku1pv.x1a2a7pz.x6s0dn4.xzolkzo.x12go9s9.x1rnf11y.xprq8jg.x972fbf.xcfux6l.x1qhh985.xm0m39n.x9f619.x78zum5.xl56j7k.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6.xc9qbxq.x14qfxbe.x1qhmfi1"
 ]
 
+def grupo_generador(group_links):
+    for group_link in group_links:
+        yield group_link
 
-def obtener_hijos():
+def obtener_hijos(driver):
     try:
         feed_div = driver.find_element("css selector", "div[role='feed']")
         WebDriverWait(driver, 10).until(
@@ -74,6 +85,17 @@ def scroll_hasta_el_final(driver):
     # Obtener la altura total de la página
     driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
     time.sleep(7) 
+    ''' previous_height = driver.execute_script("return document.body.scrollHeight")
+    while True:
+        driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+        time.sleep(7)  # Espera para cargar el contenido
+        new_height = driver.execute_script("return document.body.scrollHeight")
+
+        # Si la altura no cambia después del scroll, hemos llegado al final
+        if new_height == previous_height:
+            print("Se ha llegado al final de la página, pasando al siguiente enlace.")
+            break  # Salir del bucle y pasar al siguiente enlace
+        previous_height = new_height'''
 def buscar_imagen(selector_imagen, elemento_base): 
     for selector in selector_imagen:
         try:
@@ -194,16 +216,16 @@ def procesar_comentarios(driver, div_global_info_post,publicacion_id):
     
     except NoSuchElementException:
         print("Sin comentarios y sin comparticiones")
-
 conexion = DatabaseConnection()
 conexion.crear_conexion()
-def extraer_datos():
+generador_grupos = grupo_generador(group_links)
+def extraer_datos(driver,group_name):
     elementos_vistos = set()
     event =True  
     while event:  # Bucle infinito hasta que se detenga manualmente
           # Realiza scroll para cargar más contenido
         scroll_hasta_el_final(driver)
-        divs = obtener_hijos()  # Obtiene los elementos actuales
+        divs = obtener_hijos(driver)  # Obtiene los elementos actuales
         i =0
         time.sleep(2)
         for div in divs:
@@ -233,8 +255,8 @@ def extraer_datos():
                     print('username: ',div_post_person_name.text)
                     try:
                         with conexion.connection.cursor() as cursor:
-                                consulta = "INSERT INTO publicacion (descripcion, usuario) VALUES (%s, %s) RETURNING id"
-                                cursor.execute(consulta, (descripcion_post, post_usuario))
+                                consulta = "INSERT INTO publicacion (descripcion, usuario,group_name) VALUES (%s, %s,%s) RETURNING id"
+                                cursor.execute(consulta, (descripcion_post, post_usuario,group_name))
                                 conexion.connection.commit() # Asegúrate de confirmar la transacción
                                 publicacion_id = cursor.fetchone()[0]
                                 conexion.connection.commit()  # Asegúrate de confirmar la transacción
@@ -277,11 +299,18 @@ def extraer_datos():
                 except Exception as e:
                      print(f"Error al procesar el elemento: {e}")
                 
-            if i== 100 | i==len(divs):
+            if i== 100 or i==len(divs):
                 print('al final i : ' ,i)
                 event=False
                 break;
-        
-for dato in extraer_datos():
-   print('next :')
+for group_link in generador_grupos:
+    driver.get(group_link)  # Cargar el siguiente grupo
+    print(f"Extrayendo información de {group_link}...")
+    div_group_name = WebDriverWait(driver, 10).until(
+    EC.presence_of_element_located((By.CSS_SELECTOR, "a.x1i10hfl.xjbqb8w.x1ejq31n.xd10rxx.x1sy0etr.x17r0tee.x972fbf.xcfux6l.x1qhh985.xm0m39n.x9f619.x1ypdohk.xt0psk2.xe8uvvx.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x16tdsg8.x1hl2dhg.xggy1nq.x1a2a7pz.x1heor9g.x1sur9pj.xkrqix3.x1pd3egz"))
+    )
+    group_name=div_group_name.text
+    for dato in extraer_datos(driver,group_name):
+
+        print('next :')
 conexion.cerrar_conexion()

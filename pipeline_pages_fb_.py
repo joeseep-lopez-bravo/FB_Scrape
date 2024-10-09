@@ -39,7 +39,6 @@ class DatabaseConnection:
         except OperationalError as e:
             print(f"Error al conectar a la base de datos: {e}")
 
-
     def cerrar_conexion(self):
         """Cierra la conexión a la base de datos."""
         if self.connection:
