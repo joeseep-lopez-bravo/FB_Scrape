@@ -45,16 +45,7 @@ class DatabaseConnection:
             self.connection.close()
             print("Conexión cerrada")
 
-    def insertar_publicacion(conexion, descripcion, usuario):
-        try:
-            cursor = conexion.cursor()
-            consulta = "INSERT INTO publicacion (descripcion, usuario) VALUES (%s, %s)"
-            cursor.execute(consulta, (descripcion, usuario))
-            conexion.commit()
-            print("Publicación insertada con éxito.")
-        except Exception as e:
-            print(f"Error al insertar publicación: {e}")
-            conexion.rollback()
+   
 # Uso de la clase
 if __name__ == "__main__":
     db = DatabaseConnection()

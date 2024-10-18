@@ -4,9 +4,11 @@ import shutil
 import psycopg2  # Asegúrate de que este módulo esté instalado
 from pipeline_pages_fb_ import DatabaseConnection  # Importa tu clase de conexión a la base de datos
 import configparser
+
 # Crear una instancia de la conexión
 conexion = DatabaseConnection()
 conexion.crear_conexion()
+
 def descargar_imagen(url, nombre_archivo):
     """Descarga una imagen desde la URL proporcionada y la guarda con el nombre de archivo indicado."""
     try:
@@ -29,11 +31,19 @@ carpeta_imagenes = 'imagenes_descargadas'
 if not os.path.exists(carpeta_imagenes):
     os.makedirs(carpeta_imagenes)  # Crea la carpeta
 
-# Consulta para obtener los datos de la tabla imagenes
+# Leer el último ID procesado desde el archivo
+ultimo_id_archivo = 'ultimo_id.txt'
+ultimo_id = 0
+if os.path.exists(ultimo_id_archivo):
+    with open(ultimo_id_archivo, 'r') as file:
+        ultimo_id = int(file.read().strip())
+
+# Consulta para obtener los datos de la tabla imagenes a partir del último ID procesado
 try:
     with conexion.connection.cursor() as cursor:
-        consulta = "SELECT id, publicacion_id, url FROM imagen"
-        cursor.execute(consulta)
+        # Modifica la consulta para obtener solo las imágenes nuevas
+        consulta = "SELECT id, publicacion_id, url FROM imagen WHERE id > %s"
+        cursor.execute(consulta, (ultimo_id,))
         resultados = cursor.fetchall()  # Obtener todos los resultados
 
         # Iterar sobre los resultados para descargar cada imagen
@@ -50,6 +60,14 @@ try:
             
             # Llamar a la función para descargar la imagen
             descargar_imagen(url_imagen, ruta_archivo)
+
+            # Actualizar el último ID procesado
+            if id_imagen > ultimo_id:
+                ultimo_id = id_imagen
+
+    # Guardar el último ID procesado en el archivo
+    with open(ultimo_id_archivo, 'w') as file:
+        file.write(str(ultimo_id))
 
 except Exception as e:
     print(f"Error al obtener los datos de la base de datos: {e}")
