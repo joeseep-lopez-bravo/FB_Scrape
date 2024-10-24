@@ -5,16 +5,19 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import NoSuchElementException
 from fake_useragent import UserAgent
+from selenium.common.exceptions import NoSuchElementException, WebDriverException
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.common.action_chains import ActionChains
 import time
+import random
 import configparser
 from selenium.webdriver.common.by import By
 import psycopg2
+import pyautogui
+import logging
 from sys import exit
-#from urllib.parse import urlparse, parse_qs
-#import numpy as np
-#from selenium.webdriver.chrome.service import Service
 from pipeline_pages_fb_ import DatabaseConnection
+#from funciones_FB import
 class Scraper_Group_FB:
     def __init__(self):
         #driver = webdriver.Chrome()
@@ -33,33 +36,78 @@ class Scraper_Group_FB:
         self.config = configparser.ConfigParser()
         #Llamado de credenciales
         self.config.read('credentials.conf')
-
-        self.username = self.config.get('DEFAULT','usernamekey')
-        self.password = self.config.get('DEFAULT','passwordkey')
+        self.credentials = self._get_credentials()
+        #self.username = self.config.get('DEFAULT','usernamekey')
+        #self.password = self.config.get('DEFAULT','passwordkey')
         self.group_links = [
-            #'https://www.facebook.com/groups/chamba.dev',
+            'https://www.facebook.com/groups/chamba.dev',
             #'https://www.facebook.com/groups/1444669812310758',
             #'https://www.facebook.com/groups/820135186662129',
             #'https://www.facebook.com/groups/315599014441'
-            'https://www.facebook.com/groups/2901591359932748',
-            'https://www.facebook.com/groups/971462149627421'
+            #'https://www.facebook.com/groups/2901591359932748',
+            #'https://www.facebook.com/groups/971462149627421'
             # Agrega más enlaces de grupos aquí
         ]
         self.conexion = DatabaseConnection()
         self.conexion.crear_conexion()  
+    def _get_credentials(self):
+        credentials = []
+        # Filtrar las claves que contienen pares coincidentes de username y password
+        for key in self.config['DEFAULT']:
+            if key.startswith('usernamekey'):
+                num = key.replace('usernamekey', '')
+                username = self.config.get('DEFAULT', f'usernamekey{num}')
+                password = self.config.get('DEFAULT', f'passwordkey{num}')
+                credentials.append((username, password))
+        return credentials
     def login(self):
-        
-        time.sleep(3)
-        target_url = 'https://www.facebook.com/login/'
-        self.driver.get(target_url) 
-        time.sleep(3)
-        username_input = self.driver.find_element("css selector", "input[name='email']")
-        password_input = self.driver.find_element("css selector", "input[name='pass']")
-        username_input.send_keys(self.username)
-        password_input.send_keys(self.password)
-        login = self.driver.find_element("css selector", "button[type='submit']").click()
-        resp = self.driver.page_source 
+            attempt = 0
+            max_attempts = len(self.credentials)
+            # Limitar el número de intentos para evitar bucles infinitos
+            while attempt < max_attempts and self.credentials:
+                username, password = random.choice(self.credentials)
+                print(f"Iniciando sesión con el usuario: {username} (Intento {attempt + 1})")
+                try:
+                    # Abrir la página de inicio de sesión de Facebook
+                    time.sleep(3)
+                    target_url = 'https://www.facebook.com/login/'
+                    self.driver.get(target_url)
+                    time.sleep(3)
+                    self.driver.execute_script("document.body.style.zoom='50%'")
 
+                    # Ingresar las credenciales
+                    username_input = self.driver.find_element("css selector", "input[name='email']")
+                    password_input = self.driver.find_element("css selector", "input[name='pass']")
+                    username_input.send_keys(username)
+                    password_input.send_keys(password)
+
+                    # Hacer clic en el botón de inicio de sesión
+                    login_button = self.driver.find_element("css selector", "button[type='submit']").click()
+                    time.sleep(5)
+
+                    # Verificar si la sesión fue exitosa
+                    if "login_attempt" in self.driver.current_url or "checkpoint" in self.driver.current_url:
+                        raise ValueError("Inicio de sesión fallido, el perfil puede estar bloqueado o las credenciales son incorrectas.")
+
+                    print(f"Sesión iniciada con éxito con el usuario: {username}")
+                    return self.driver.page_source  # Devuelve la fuente de la página si inicia sesión correctamente
+
+                except (NoSuchElementException, WebDriverException, ValueError) as e:
+                    print(f"Error al iniciar sesión con {username}: {str(e)}")
+                    print("Intentando con otras credenciales...")
+                    
+                    # Eliminar las credenciales fallidas de la lista
+                    self.credentials.remove((username, password))
+                    attempt += 1
+
+            print("Error: No se pudo iniciar sesión después de múltiples intentos.")
+            return None
+    def configurar_logger(self):
+        # Configuración básica del logger
+        logging.basicConfig(filename='errores_grupos_fb.log',  # Archivo donde se guardarán los logs
+                            level=logging.INFO,     # Nivel de registro, en este caso errores
+                            format='%(asctime)s - %(levelname)s - %(message)s',  # Formato del log
+                            datefmt='%Y-%m-%d %H:%M:%S')  # Formato de la fecha y hora
     selector_imagen = [
         "div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6 > a > div > div > div > div>img",
         "div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xat24cr.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1jx94hy.x8cjs6t.x1ch86jh.x80vd3b.xckqwgs.x13fuv20.xu3j5b3.x1q0q8m5.x26u7qi.x178xt8z.xm81vs4.xy80clv.xfh8nwu.xoqspk4.x12v9rci.x138vmkv.x6ikm8r.x10wlt62.x16n37ib.xq8finb > div > div > div.html-div.xdj266r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6.x1mh8g0r.x11i5rnm.xod5an3 > div > a > div > div > div > div > img"
@@ -68,11 +116,14 @@ class Scraper_Group_FB:
         "div.__fb-light-mode.x1qjc9v5.x9f619.x78zum5.xdt5ytf.x1iyjqo2.xl56j7k.xshlqvt div.x1i10hfl.xjqpnuy.xa49m3k.xqeqjp1.x2hbi6w.x13fuv20.xu3j5b3.x1q0q8m5.x26u7qi.x1ypdohk.xdl72j9.x2lah0s.xe8uvvx.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.x2lwn1j.xeuugli.x16tdsg8.x1hl2dhg.xggy1nq.x1ja2u2z.x1t137rt.x1q0g3np.x87ps6o.x1lku1pv.x1a2a7pz.x6s0dn4.xzolkzo.x12go9s9.x1rnf11y.xprq8jg.x972fbf.xcfux6l.x1qhh985.xm0m39n.x9f619.x78zum5.xl56j7k.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6.xc9qbxq.x14qfxbe.x1qhmfi1",
         "div.__fb-dark-mode.xnkg4db.xwsalez.x13ywhbb.x178cd7z.x1n2onr6.xzkaem6 div.x1i10hfl.xjqpnuy.xa49m3k.xqeqjp1.x2hbi6w.x13fuv20.xu3j5b3.x1q0q8m5.x26u7qi.x1ypdohk.xdl72j9.x2lah0s.xe8uvvx.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.x2lwn1j.xeuugli.x16tdsg8.x1hl2dhg.xggy1nq.x1ja2u2z.x1t137rt.x1q0g3np.x87ps6o.x1lku1pv.x1a2a7pz.x6s0dn4.xzolkzo.x12go9s9.x1rnf11y.xprq8jg.x972fbf.xcfux6l.x1qhh985.xm0m39n.x9f619.x78zum5.xl56j7k.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6.xc9qbxq.x14qfxbe.x1qhmfi1"
     ]
-
+    selectors_descripcion=[
+        'div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd div.x78zum5.xdt5ytf.xz62fqu.x16ldp7u >div.xu06os2.x1ok221b > span.x193iq5w.xeuugli.x13faqbe.x1vvkbs.x1xmvt09.x1lliihq.x1s928wv.xhkezso.x1gmr53x.x1cpjm7i.x1fgarty.x1943h6x.xudqn12.x3x7a5m.x6prxxf.xvq8zen.xo1l8bm.xzsf02u.x1yc453h',
+        'div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd  div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.x1l90r2v.x1pi30zi.x1swvt13.x1iorvi4 >span'
+    ]
     def grupo_generador(self,group_links):
         for group_link in group_links:
             yield group_link
-    def obtener_hijos(self,driver):
+    def obtener_hijos(self,driver,group_link):
         try:
             feed_div = driver.find_element("css selector", "div[role='feed']")
             WebDriverWait(driver, 10).until(
@@ -82,7 +133,7 @@ class Scraper_Group_FB:
             )
             return feed_div.find_elements(By.CSS_SELECTOR, "div[class='x1yztbdb x1n2onr6 xh8yej3 x1ja2u2z']")
         except Exception as e:                                         
-            print(f"Error al obtener hijos: {e}")
+            logging.error(f"Error al obtener los divs hijos en el grupo {group_link}")
             return []
     def scroll_hasta_el_final(self,driver):
         # Obtener la altura total de la página
@@ -96,6 +147,71 @@ class Scraper_Group_FB:
             except NoSuchElementException:
                 continue
         return "sin imagen"
+    def obtener_descripcion (self,selector_descripcion,elemento_base):
+        for selector in selector_descripcion:
+            try:
+                div_post_description= elemento_base.find_element(By.CSS_SELECTOR, selector).text
+                return div_post_description
+            except NoSuchElementException:
+                continue
+        return "sin descripcion"
+    def buscar_texto_como_imagen(self,elemento_base):
+            try:
+                texto_imagen= elemento_base.find_element(By.CSS_SELECTOR, 'div.xh8yej3 div.x6s0dn4.x78zum5.xdt5ytf.x5yr21d.xl56j7k.x10l6tqk.x17qophe.x13vifvy.xh8yej3 div .xdj266r.x11i5rnm.xat24cr.x1mh8g0r.x1vvkbs').text
+                return texto_imagen
+            except NoSuchElementException:
+                return "sin texto en la imagen"
+    def obtener_comentario(self,elemento_base,publicacion_id,group_link):
+          try:
+            div_coment_content = elemento_base.find_element(By.CSS_SELECTOR,"div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6 div.x1r8uery.x1iyjqo2.x6ikm8r.x10wlt62.x1pi30zi div.xwib8y2.xn6708d.x1ye3gou.x1y1aw1k")
+            div_open_comments = elemento_base.find_element(By.CSS_SELECTOR,"div.x1i10hfl.x1qjc9v5.xjqpnuy.xa49m3k.xqeqjp1.x2hbi6w.x1ypdohk.xdl72j9.x2lah0s.xe8uvvx.x2lwn1j.xeuugli.x1hl2dhg.xggy1nq.x1t137rt.x1o1ewxj.x3x9cwd.x1e5q0jg.x13rtm0m.x3nfvp2.x1q0g3np.x87ps6o.x1lku1pv.x1a2a7pz.xjyslct.xjbqb8w.x13fuv20.xu3j5b3.x1q0q8m5.x26u7qi.x972fbf.xcfux6l.x1qhh985.xm0m39n.x9f619.x1heor9g.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6.x16tdsg8.x1ja2u2z")
+            div_text_open_comments = div_open_comments.text.lower()
+            if "1 comentario" in div_text_open_comments:
+                try:
+                    div_user_name_comment = div_coment_content.find_element(By.CSS_SELECTOR, " span > span.xt0psk2")
+                    usuario_comentador=div_user_name_comment.text
+                    print(f"Usuario solito: {div_user_name_comment.text}")
+                    
+                except Exception as e:
+                    logging.error(f"Comentario solitario con id {publicacion_id} del grupo {group_link} sin usuario comentador ")
+                try:
+                    div_user_comment = div_coment_content.find_element(By.CSS_SELECTOR, " div.x1lliihq.xjkvuk6.x1iorvi4 > span")
+                    comentario=div_user_comment.text
+                    print(f"Usuario solito: {div_user_comment.text}")
+                except Exception as e:
+                    logging.error(f"Comentario solitario con id {publicacion_id} del grupo {group_link} sin descripcion ")
+
+                try:
+                    with self.conexion.connection.cursor() as cursor:
+                        consulta = "INSERT INTO comentario (publicacion_id,usuario, descripcion_comentario) VALUES (%s,%s, %s) RETURNING Id"
+                        cursor.execute(consulta, (publicacion_id,usuario_comentador, comentario))
+                        self.conexion.connection.commit() # Asegúrate de confirmar la transacción
+                        comentario_id = cursor.fetchone()[0]
+                        self.conexion.connection.commit()
+                        print("Comentario insertado con éxitos")
+                except psycopg2.Error as e:
+                                logging.error(f"Error en la base de datos con unico comentario: {e}")
+                except Exception as e:
+                                logging.error(f"Algo está pasando con comentarios descripción unico: {e}")
+                try:
+                    div_user_image_comment = div_coment_content.find_element(By.CSS_SELECTOR,"div.x1ey2m1c.x9f619.xds687c.x17qophe.x10l6tqk.x13vifvy > a > img")
+                    image_url=div_user_image_comment.get_attribute('src')
+                    print(f"Imagen del comentario: {div_user_image_comment.get_attribute('src')}")
+                    try:
+                        with self.conexion.connection.cursor() as cursor:
+                            consulta = "INSERT INTO imagen (publicacion_id,comentario_id,url) VALUES (%s,%s, %s)"
+                            cursor.execute(consulta, (publicacion_id,comentario_id,image_url))
+                            self.conexion.connection.commit() # Asegúrate de confirmar la transacción
+                            print("Imagen de comentario insertada con éxitos")
+                    except psycopg2.Error as e:
+                                        logging.error(f"Error en la base de datos con imagen en comentarios: {e}")
+                    except Exception as e:
+                                        logging.error(f"Algo está pasando con comentairos de image: {e}")
+                except Exception as e:
+                    logging.error(f"Comentario solitario con id {publicacion_id} del grupo {group_link} sin imagen ")
+                
+          except NoSuchElementException:
+                logging.error(f"Publicacion con id {publicacion_id} del grupo {group_link} sin comentarios")     
     def obtener_imagenes(self,div_global_info_post):
         try :
             try:
@@ -115,49 +231,58 @@ class Scraper_Group_FB:
                 yield enlace1
         except NoSuchElementException:
                     yield 'aqui no hay imagenes'
-    def procesar_comentarios(self, div_global_info_post,publicacion_id):
+    def procesar_comentarios(self, div_global_info_post,publicacion_id,group_link):
         try:
-            # Localiza el botón para abrir los comentarios
+            wait = WebDriverWait(self.driver, 10)
             div_open_comments = div_global_info_post.find_element(By.CSS_SELECTOR,"div.x1i10hfl.x1qjc9v5.xjqpnuy.xa49m3k.xqeqjp1.x2hbi6w.x1ypdohk.xdl72j9.x2lah0s.xe8uvvx.x2lwn1j.xeuugli.x1hl2dhg.xggy1nq.x1t137rt.x1o1ewxj.x3x9cwd.x1e5q0jg.x13rtm0m.x3nfvp2.x1q0g3np.x87ps6o.x1lku1pv.x1a2a7pz.xjyslct.xjbqb8w.x13fuv20.xu3j5b3.x1q0q8m5.x26u7qi.x972fbf.xcfux6l.x1qhh985.xm0m39n.x9f619.x1heor9g.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6.x16tdsg8.x1ja2u2z")
             div_text_open_comments = div_open_comments.text.lower()
-            # Verificamos si el botón es para abrir comentarios
             if "comentarios" in div_text_open_comments:
                 # Realiza la acción de abrir el modal de comentarios
                 actions = ActionChains(self.driver)
+                #print("Click antes de darl click a abrir comentarios")
                 actions.move_to_element(div_open_comments).click().perform()
-                time.sleep(2)
+                #print("Click despues de darl click a abrir comentarios")
+                time.sleep(3)
                 # Procesamos el modal de comentarios
                 try: 
-                    wait = WebDriverWait(self.driver, 10)
                     #elemento_encontrado = driver.find_element(By.CSS_SELECTOR,"div.__fb-light-mode.x1qjc9v5.x9f619.x78zum5.xdt5ytf.x1iyjqo2.xl56j7k.xshlqvt div.x1i10hfl.xjqpnuy.xa49m3k.xqeqjp1.x2hbi6w.x13fuv20.xu3j5b3.x1q0q8m5.x26u7qi.x1ypdohk.xdl72j9.x2lah0s.xe8uvvx.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.x2lwn1j.xeuugli.x16tdsg8.x1hl2dhg.xggy1nq.x1ja2u2z.x1t137rt.x1q0g3np.x87ps6o.x1lku1pv.x1a2a7pz.x6s0dn4.xzolkzo.x12go9s9.x1rnf11y.xprq8jg.x972fbf.xcfux6l.x1qhh985.xm0m39n.x9f619.x78zum5.xl56j7k.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6.xc9qbxq.x14qfxbe.x1qhmfi1")
-                    elemento_encontrado = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"div.__fb-light-mode.x1qjc9v5.x9f619.x78zum5.xdt5ytf.x1iyjqo2.xl56j7k.xshlqvt div.x1i10hfl.xjqpnuy.xa49m3k.xqeqjp1.x2hbi6w.x13fuv20.xu3j5b3.x1q0q8m5.x26u7qi.x1ypdohk.xdl72j9.x2lah0s.xe8uvvx.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.x2lwn1j.xeuugli.x16tdsg8.x1hl2dhg.xggy1nq.x1ja2u2z.x1t137rt.x1q0g3np.x87ps6o.x1lku1pv.x1a2a7pz.x6s0dn4.xzolkzo.x12go9s9.x1rnf11y.xprq8jg.x972fbf.xcfux6l.x1qhh985.xm0m39n.x9f619.x78zum5.xl56j7k.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6.xc9qbxq.x14qfxbe.x1qhmfi1")))
-                
                     modal_contenido = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, 'div.__fb-light-mode.x1qjc9v5.x9f619.x78zum5.xdt5ytf.x1iyjqo2.xl56j7k.xshlqvt div.x1n2onr6.x1ja2u2z.x1afcbsf.xdt5ytf.x1a2a7pz.x71s49j.x1qjc9v5.xrjkcco.x58fqnu.x1mh14rs.xfkwgsy.x78zum5.x1plvlek.xryxfnj.xcatxm7.xrgej4m.xh8yej3')))
                     opem_all_coment = modal_contenido.find_element(By.CSS_SELECTOR,"div.x6ikm8r.x10wlt62 > div.xwya9rg.x11i5rnm.x1e56ztr.x1mh8g0r.xh8yej3 div > div >div > div.x6s0dn4.x78zum5.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xe0p6wg >div")
+                    #print("Click antes de abrir opcion_comentario")
                     opem_all_coment.click()
-                    
+                    #print("Click despues de abrir opcion_comentario")
                     # Abrimos la sección de "ver todos los comentarios"
                     show_all_coments = self.driver.find_element(By.CSS_SELECTOR,"div.x1i10hfl.xjbqb8w.x1ejq31n.xd10rxx.x1sy0etr.x17r0tee.x972fbf.xcfux6l.x1qhh985.xm0m39n.xe8uvvx.x1hl2dhg.xggy1nq.x1o1ewxj.x3x9cwd.x1e5q0jg.x13rtm0m.x87ps6o.x1lku1pv.x1a2a7pz.xjyslct.x9f619.x1ypdohk.x78zum5.x1q0g3np.x2lah0s.x1i6fsjq.xfvfia3.xnqzcj9.x1gh759c.x10wwi4t.x1x7e7qh.x1344otq.x1de53dj.x1n2onr6.x16tdsg8.x1ja2u2z.x6s0dn4:nth-of-type(3)")
+                    #print("Click antes de tercer opcion_comentario")
                     show_all_coments.click()
-                    
+                    #print("Click despues de tercer opcion_comentario")
                     div_with_comments = self.driver.find_element(By.CSS_SELECTOR,"div.html-div.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1gslohp")
-                    # Bucle para scroll y cargar más comentarios
+                    try:
+                        cierre_modal = wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,"div.__fb-light-mode.x1qjc9v5.x9f619.x78zum5.xdt5ytf.x1iyjqo2.xl56j7k.xshlqvt div.x1i10hfl.xjqpnuy.xa49m3k.xqeqjp1.x2hbi6w.x13fuv20.xu3j5b3.x1q0q8m5.x26u7qi.x1ypdohk.xdl72j9.x2lah0s.xe8uvvx.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.x2lwn1j.xeuugli.x16tdsg8.x1hl2dhg.xggy1nq.x1ja2u2z.x1t137rt.x1q0g3np.x87ps6o.x1lku1pv.x1a2a7pz.x6s0dn4.xzolkzo.x12go9s9.x1rnf11y.xprq8jg.x972fbf.xcfux6l.x1qhh985.xm0m39n.x9f619.x78zum5.xl56j7k.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6.xc9qbxq.x14qfxbe.x1qhmfi1")))
+                    except:
+                        cierre_modal=False
+                        logging.error(f"No se encontro el modal en la publicacion  con id {publicacion_id} del grupo {group_link}")
+                          
+                    #- Bucle para scroll y cargar más comentarios
                     total_comentarios = 0
                     while True:
                         self.driver.execute_script("arguments[0].scrollTop = arguments[0].scrollHeight;", div_with_comments)
                         time.sleep(2)
-
                         # Obtenemos los comentarios
                         div_comment = div_with_comments.find_elements(By.CSS_SELECTOR, "div.x169t7cy.x19f6ikt")
                         for comment in div_comment:
                             try:
                                 # Extraemos nombre de usuario y texto del comentario
                                 div_user_name_comment = comment.find_element(By.CSS_SELECTOR, "div.xwib8y2.xn6708d.x1ye3gou.x1y1aw1k > span > span.xt0psk2")
-                                div_user_description_comment = comment.find_element(By.CSS_SELECTOR, "div.xwib8y2.xn6708d.x1ye3gou.x1y1aw1k > div.x1lliihq.xjkvuk6.x1iorvi4 > span")
                                 usuario_comentador=div_user_name_comment.text
-                                comentario=div_user_description_comment.text
                                 print(f"Usuario: {div_user_name_comment.text}")
-                                print(f"Comentario: {div_user_description_comment.text}")
+                                try:
+                                      div_user_description_comment = comment.find_element(By.CSS_SELECTOR, "div.xwib8y2.xn6708d.x1ye3gou.x1y1aw1k > div.x1lliihq.xjkvuk6.x1iorvi4 > span")
+                                      comentario=div_user_description_comment.text
+                                      print(f"Comentario: {div_user_description_comment.text}")
+                                except Exception as e:
+                                        comentario="vacio"
+                                        logging.error(f"Error al obtener en descripcion comentario en la con iterador publicacion con id {publicacion_id} en el grupo {group_link}")
                                 try:
                                     with self.conexion.connection.cursor() as cursor:
                                         consulta = "INSERT INTO comentario (publicacion_id,usuario, descripcion_comentario) VALUES (%s,%s, %s) RETURNING Id"
@@ -167,9 +292,9 @@ class Scraper_Group_FB:
                                         self.conexion.connection.commit()
                                         print("Comentario insertado con éxitos")
                                 except psycopg2.Error as e:
-                                                print(f"Error en la base de datos con comentarios: {e}")
+                                                logging.error(f"Error en la base de datos con comentarios: {e}")
                                 except Exception as e:
-                                                print(f"Algo está pasando con comentairos: {e}")
+                                                logging.error(f"Algo está pasando con comentairos: {e}")
 
                                 # Extraemos la imagen del comentario
                                 try:
@@ -183,69 +308,45 @@ class Scraper_Group_FB:
                                             self.conexion.connection.commit() # Asegúrate de confirmar la transacción
                                             print("Imagen de comentario insertada con éxitos")
                                     except psycopg2.Error as e:
-                                                    print(f"Error en la base de datos con imagen en comentarios: {e}")
+                                                    logging.error(f"Error en la base de datos con imagen en comentarios: {e}")
                                     except Exception as e:
-                                                    print(f"Algo está pasando con comentairos de imagen: {e}")
+                                                    logging.error(f"No se encontro una imagen dentro de comentario:")
                                 except:
+                                    div_user_image_comment='vacio'
                                     continue
                             except Exception as e:
-                                print(f"Error al obtener el comentario: {e}")
+                                logging.error(f"Error al obtener el comentario: {e}")
                         
                         nuevos_comentarios = len(div_comment)
                         if nuevos_comentarios == total_comentarios:
                             break
                         total_comentarios = nuevos_comentarios
-
+                    
                     print(f"Total de comentarios procesados: {total_comentarios}")
                 except Exception as e:
-                    print(f"Error procesando el modal de comentarios:")
+                    logging.error(f"Ausencia de elemento dentro del modal comentarios con id {publicacion_id} del grupo {group_link} ")
                     pass
-            if elemento_encontrado:
-                    elemento_encontrado.click()
-                    print('Se cerró el modal de comentarios')
+            if cierre_modal:
+                    #print("Click antes dedarl click a cerrar comentario")
+                    cierre_modal.click()
+                    #print('Se cerró el modal de comentarios')
             else:
                 print("El div es de compartido")
         
         except NoSuchElementException:
-            print("Sin comentarios y sin comparticiones")
-    def obtener_miembros(self,driver):
-        personas_div=driver.driver.find_element("css selector","div.x14ju556.x1n2onr6 div.x1ey2m1c.x9f619.xds687c.x17qophe.x10l6tqk.x13vifvy")
-        cuarto_elemento = personas_div.find_element("css selector", "a.x1i10hfl.xe8uvvx.xggy1nq.x1o1ewxj.x3x9cwd.x1e5q0jg.x13rtm0m.x87ps6o.x1lku1pv.x1a2a7pz.xjyslct.xjbqb8w.x18o3ruo.x13fuv20.xu3j5b3.x1q0q8m5.x26u7qi.x972fbf.xcfux6l.x1qhh985.xm0m39n.x9f619.x1heor9g.x1ypdohk.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6.x16tdsg8.x1hl2dhg.x1vjfegm.x3nfvp2.xrbpyxo.x1itg65n.x16dsc37:nth-of-type(4)")
-        cuarto_elemento.click()
-        #cambia l url ,pero no completa, esta bien como opero? el driver ahora
-        ver_todos_div = driver.find_element("css selector", "div.x9f619.x1n2onr6.x1ja2u2z.x78zum5.xdt5ytf.x193iq5w.xeuugli.x1r8uery.x1iyjqo2.xs83m0k.xsyo7zv.x16hj40l.x10b6aqq.x1yrsyyn > a.x1i10hfl.xjbqb8w.x1ejq31n.xd10rxx.x1sy0etr.x17r0tee.x972fbf.xcfux6l.x1qhh985.xm0m39n.x1ypdohk.xe8uvvx.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x16tdsg8.x1hl2dhg.xggy1nq.x1o1ewxj.x3x9cwd.x1e5q0jg.x13rtm0m.x87ps6o.x1lku1pv.x1a2a7pz.x9f619.x3nfvp2.xdt5ytf.xl56j7k.x1n2onr6.xh8yej3")
-        ver_todos_div.click()
-        event =True
-        while event:
-            self.scroll_hasta_el_final(driver)
-            list_people_div = driver.find_element("css selector","div.html-div.x11i5rnm.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1oo3vh0.x1rdy4ex")
-            person_div=list_people_div.find_element("css selector","div.x78zum5.xdt5ytf.xz62fqu.x16ldp7u > div.xu06os2.x1ok221b span.xt0psk2 > a")
-            for name_person in person_div:
-                  group_menber =name_person.text
-                  print(f"Usuario: {group_menber}")
-                  try:
-                        with self.conexion.connection.cursor() as cursor:
-                                  consulta = "INSERT INTO  (url,publicacion_id) VALUES (%s, %s)"
-                                  cursor.execute(consulta, ())
-                                  self.conexion.connection.commit() # Asegúrate de confirmar la transacción
-                                  print(f"Imagen insertada con éxito")
-                  except:
-                #EN contruccion , afecta a toda al modelo creado en la db , tano su insercion como de las otros
-                #SI SE USA, obtener url de los perfiles y si es posible de las publicaciones.
-                #USUARIO 1:N Publicacion USUARIO 1:N Grupos
-                #CAMBIAR ESTRUCTURA DE TABLA PUBLICACION
-                #LOS PERFILES NO TIENEN QUE CAMBIAR, deben tener un ID unico , pero pueden repetirse si cambian.
-                #
-                        continue 
-    def extraer_datos(self,driver,group_name):
+            logging.info("Sin comentarios y sin comparticiones , si este mensaje se repite mas de 20 veces seguidas en diferentes grupos, posiblemente cambia la estructura.")
+    def obtener_videos():
+          # no esposible debido a que los enlaces son enlaces temporarles , y estan lbloqueados por blob al comienzo de sus estructura.
+          pass
+    def extraer_datos(self,driver,group_name,group_link):
+        self.configurar_logger()
         elementos_vistos = set()
         event =True  
         contador_repeticiones = 0  # Contador para verificar repeticiones
         longitud_anterior = -1  # Inicializamos en -1 para que sea diferente de la primera longitud
         while event:  # Bucle infinito hasta que se detenga manualmente
-            # Realiza scroll para cargar más contenido
             self.scroll_hasta_el_final(driver)
-            divs = self.obtener_hijos(driver)  # Obtiene los elementos actuales
+            divs = self.obtener_hijos(driver,group_link)  # Obtiene los elementos actuales
             i =0
             time.sleep(2)
             longitud_actual = len(divs)
@@ -267,20 +368,19 @@ class Scraper_Group_FB:
                 if texto not in elementos_vistos:  # Verifica si el texto ya fue procesado
                     elementos_vistos.add(texto) 
                     try:
-                        div_global_info_post = WebDriverWait(div, 8).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.x1n2onr6.x1ja2u2z > div:not([class]) > div:not([class]) > div > div > div > div > div > div > div:not([class]) > div > div")))
+                        div_global_info_post = WebDriverWait(div, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.x1n2onr6.x1ja2u2z > div:not([class]) > div:not([class]) > div > div > div > div > div > div > div:not([class]) > div > div")))
                         div_cabecera_post = div_global_info_post.find_element(By.CSS_SELECTOR, "div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1iyjqo2 > div")
                         div_post_person_name = div_cabecera_post.find_element(By.CSS_SELECTOR, "div.xu06os2.x1ok221b >span  h2 > span")         
                         #div_post_img realiaar insert en tabla imagen                        
                         try:
-                            div_post_description = div_global_info_post.find_element(By.CSS_SELECTOR, "div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd div.x78zum5.xdt5ytf.xz62fqu.x16ldp7u >div.xu06os2.x1ok221b div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.x1vvkbs.x126k92a")
-                            descripcion_post= div_post_description.text
-                            print('Descripción del post: ', div_post_description.text)  # Imprimir la descripción si existe
+                            descripcion_post = self.obtener_descripcion(self.selectors_descripcion,div_global_info_post)
+                            print('Descripción del post: ', descripcion_post)  # Imprimir la descripción si existe
                             #div_post_person_name.text realiaar insert en tabla publicacion columna descripcion
                         except Exception as e:
                             descripcion_post=""
-                            print('Descripción del post: No tiene ', e)
+                            logging.error('Esta publicacion del grupo no contiene una descripcion', e)
                         #print('identificador fecha:',div_post_date_id ,"::")    
-                        print('estamons en el iterador', i)
+                        logging.info(f'estamons en el iterador {i}  del grupo  {group_link}')
                         post_usuario=div_post_person_name.text
                         print('username: ',div_post_person_name.text)
                         try:
@@ -292,9 +392,9 @@ class Scraper_Group_FB:
                                     self.conexion.connection.commit()  # Asegúrate de confirmar la transacción
                                     print(f"Publicación insertada con éxito. ID de la publicación: {publicacion_id}")         
                         except psycopg2.Error as e:
-                                    print(f"Error en la base de datos publicacion: {e}")
+                                    logging.error(f"Error en la base de datos con la publicación  con id : {publicacion_id} en el grupo :  { group_link}  : {e}")
                         except Exception as e:
-                                    print(f"Algo está pasando con esto publicacion: {e}")
+                                    logging.error(f"algo esta mal con la insercion de la publicacion con id : {publicacion_id} en el grupo :  { group_link}  : {e}")
                         enlaceimagenes = self.obtener_imagenes(div_global_info_post)                   
                         for enlace in enlaceimagenes:
                             print('url:', enlace)
@@ -306,56 +406,75 @@ class Scraper_Group_FB:
                                         print(f"Imagen insertada con éxito")
                         
                             except psycopg2.Error as e:
-                                        print(f"Error en la base de datos Imagenes: {e}")
+                                        logging.error(f"Error en la base de datos Imagenes con la publicación  con id : {publicacion_id} en el grupo :    : {e}")
                             except Exception as e:
-                                        print(f"Algo está pasando con esto Imagenes: {e}")
+                                        logging.error(f"Algo está pasando con esto Imagenes: {e}")
                         
                         #div_post_person_name.text realiaar insert en tabla publicacion columna usuario
                         div_post_img = self.buscar_imagen(self.selector_imagen, div_global_info_post)
                         print('url: ', div_post_img)
                         try:
                             with self.conexion.connection.cursor() as cursor:
-                                    consulta = "INSERT INTO imagen (url,publicacion_id) VALUES (%s, %s)"
-                                    cursor.execute(consulta, (div_post_img,publicacion_id ))
+                                    consulta = "INSERT INTO imagen (url,contenido,publicacion_id,type_img) VALUES (%s,%s ,%s,%s)"
+                                    cursor.execute(consulta, (div_post_img,"no hay texto es imagen",publicacion_id ,'picture'))
                                     self.conexion.connection.commit() # Asegúrate de confirmar la transacción
                                     print(f"Imagen insertada con éxito")
                         
                         except psycopg2.Error as e:
-                                    print(f"Error en la base de datos Imagen: {e}")
+                                    logging.error(f"Error en la base de datos Imagen: {e}")
                         except Exception as e:
-                                    print(f"Algo está pasando con esto Imagen: {e}")
-                        self.procesar_comentarios(div_global_info_post,publicacion_id)                         
+                                    logging.error(f"Algo está pasando con esto Imagen: {e}")
+                        div_post_img_txt= self.buscar_texto_como_imagen(div_global_info_post)
+                        print(div_post_img_txt)
+                        try:
+                            with self.conexion.connection.cursor() as cursor:
+                                    consulta = "INSERT INTO imagen (url,contenido,publicacion_id,type_img) VALUES (%s,%s, %s,%s)"
+                                    cursor.execute(consulta, ("no hay imagen es texto",div_post_img_txt,publicacion_id ,'texto'))
+                                    self.conexion.connection.commit() # Asegúrate de confirmar la transacción
+                                    print(f"Imagen texto insertada con éxito")
+                        
+                        except psycopg2.Error as e:
+                                    logging.error(f"Error en la base de datos Imagen: {e}")
+                        except Exception as e:
+                                    logging.error(f"Algo está pasando con esto Imagen: {e}")
+                        self.obtener_comentario(div_global_info_post,publicacion_id,group_link)
+                        self.procesar_comentarios(div_global_info_post,publicacion_id,group_link)                         
                         yield  texto
                     except Exception as e:
-                        print(f"Error al procesar el elemento: {e}")
+                        logging.error(f"Error al procesar el elemento: {e}")
     def procesar_grupos(self):
         try:
             self.login()
             generador_grupos = self.grupo_generador(self.group_links)
             total_grupos = len(self.group_links)  # Total de grupos a procesar
             print("hay  grutpos " ,total_grupos)
-            grupos_procesados = 0  # Contador de grupos procesados
-            
+            grupos_procesados = 0  # Contador de grupos procesados   
             for group_link in generador_grupos:
                 self.driver.get(group_link)  # Cargar el siguiente grupo
+                time.sleep(3)
+                #self.driver.execute_script("document.body.style.zoom='50%'")
                 print(f"Extrayendo información de {group_link}...")
-
+                action = ActionChains(self.driver)
+                action.key_down(Keys.CONTROL)
+                # Simular Ctrl + Scroll hacia atrás (Zoom Out)
+                pyautogui.keyDown('ctrl')  # Mantén presionada la tecla Ctrl
+                for _ in range(3):  # Ajusta la cantidad de zoom out según sea necesario
+                    pyautogui.scroll(-150)  # Desplazar hacia atrás para hacer zoom out
+                    time.sleep(1)  # Pausa breve para que el navegador procese el zoom
+                pyautogui.keyUp('ctrl') 
                 div_group_name = WebDriverWait(self.driver, 10).until(
                     EC.presence_of_element_located((By.CSS_SELECTOR, "a.x1i10hfl.xjbqb8w.x1ejq31n.xd10rxx.x1sy0etr.x17r0tee.x972fbf.xcfux6l.x1qhh985.xm0m39n.x9f619.x1ypdohk.xt0psk2.xe8uvvx.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x16tdsg8.x1hl2dhg.xggy1nq.x1a2a7pz.x1heor9g.x1sur9pj.xkrqix3.x1pd3egz"))
                 )
                 group_name = div_group_name.text
-
-                for dato in self.extraer_datos(self.driver, group_name):
+                for dato in self.extraer_datos(self.driver, group_name,group_link):
                     print('next :')
 
-                grupos_procesados += 1  # Incrementar el contador de grupos procesados
+                grupos_procesados += 1 
                 print(f"Grupos procesados: {grupos_procesados}/{total_grupos}")
-
-            # Cerrar la conexión cuando ya no hay más grupos que procesar
             self.conexion.cerrar_conexion()
 
         except Exception as e:
-            print(f"Error al procesar grupos: {e}")
+            logging.error(f"Error al procesar grupos: {e}")
 
         finally:
             # Asegurarse de que el navegador se cierra al terminar el procesamiento de todos los grupos

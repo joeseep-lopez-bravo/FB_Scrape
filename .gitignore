@@ -1,0 +1,13 @@
+# Ignorar archivos de caché compilados de Python
+__pycache__/
+
+# Ignorar el archivo de credenciales
+credentials.conf
+
+db_credentials.ini
+
+# Ignorar la carpeta de imágenes descargadas
+imagenes_descargadas/
+
+# Ignorar archivos de imagenes individuales si no quieres ignorar toda la carpeta
+imagenes_descargadas/*.jpg
