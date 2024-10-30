@@ -34,13 +34,12 @@ class Scraper_Group_FB:
         #driver = webdriver.Chrome(options=options)
         #driver.get('https://practicesoftwaretesting.com/')
         self.config = configparser.ConfigParser()
-        #Llamado de credenciales
         self.config.read('credentials.conf')
         self.credentials = self._get_credentials()
         #self.username = self.config.get('DEFAULT','usernamekey')
         #self.password = self.config.get('DEFAULT','passwordkey')
         self.group_links = [
-            'https://www.facebook.com/groups/chamba.dev',
+            'https://www.facebook.com/groups/391117893977621',
             #'https://www.facebook.com/groups/1444669812310758',
             #'https://www.facebook.com/groups/820135186662129',
             #'https://www.facebook.com/groups/315599014441'
@@ -161,6 +160,33 @@ class Scraper_Group_FB:
                 return texto_imagen
             except NoSuchElementException:
                 return "sin texto en la imagen"
+    def obtener_videos(self,elemento_base,publicacion_id):
+          try:
+            div_video_open=elemento_base.find_element(By.CSS_SELECTOR, "div[role='presentation']")
+            # Crea una instancia de ActionChains
+            acciones = ActionChains(self.driver)
+            # Realiza un doble clic en el elemento
+            acciones.double_click(div_video_open).perform()
+            time.sleep(2)  # Espera para que la acción se complete
+            div_close_video_modal = self.driver.find_element(By.CSS_SELECTOR, "div[aria-label='Cerrar']")
+            # Obtiene la URL actual
+            url_actual = self.driver.current_url
+            print("Aquí hay un video:", url_actual)
+            div_close_video_modal.click()
+            try:
+                    with self.conexion.connection.cursor() as cursor:
+                        consulta = "INSERT INTO videos (url,usuario, publicacion_id) VALUES (%s, %s) "
+                        cursor.execute(consulta, (url_actual,publicacion_id,))
+                        self.conexion.connection.commit() 
+                        print("Comentario insertado con éxitos")
+            except psycopg2.Error as e:
+                            logging.error(f"Error en la base de datos con la tabla videos: {e}")
+            except Exception as e:
+                            logging.error(f"Algo está pasando conn el video insertado: {e}")
+            # no esposible debido a que los enlaces son enlaces temporarles , y estan lbloqueados por blob al comienzo de sus estructura.
+          except:
+                print("No tiene videos ")
+          pass
     def obtener_comentario(self,elemento_base,publicacion_id,group_link):
           try:
             div_coment_content = elemento_base.find_element(By.CSS_SELECTOR,"div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1n2onr6 div.x1r8uery.x1iyjqo2.x6ikm8r.x10wlt62.x1pi30zi div.xwib8y2.xn6708d.x1ye3gou.x1y1aw1k")
@@ -335,9 +361,6 @@ class Scraper_Group_FB:
         
         except NoSuchElementException:
             logging.info("Sin comentarios y sin comparticiones , si este mensaje se repite mas de 20 veces seguidas en diferentes grupos, posiblemente cambia la estructura.")
-    def obtener_videos():
-          # no esposible debido a que los enlaces son enlaces temporarles , y estan lbloqueados por blob al comienzo de sus estructura.
-          pass
     def extraer_datos(self,driver,group_name,group_link):
         self.configurar_logger()
         elementos_vistos = set()
@@ -371,6 +394,7 @@ class Scraper_Group_FB:
                         div_global_info_post = WebDriverWait(div, 10).until(EC.presence_of_element_located((By.CSS_SELECTOR, "div.x1n2onr6.x1ja2u2z > div:not([class]) > div:not([class]) > div > div > div > div > div > div > div:not([class]) > div > div")))
                         div_cabecera_post = div_global_info_post.find_element(By.CSS_SELECTOR, "div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd > div > div.html-div.xdj266r.x11i5rnm.xat24cr.x1mh8g0r.xexx8yu.x4uap5.x18d9i69.xkhd6sd.x1iyjqo2 > div")
                         div_post_person_name = div_cabecera_post.find_element(By.CSS_SELECTOR, "div.xu06os2.x1ok221b >span  h2 > span")         
+                        
                         #div_post_img realiaar insert en tabla imagen                        
                         try:
                             descripcion_post = self.obtener_descripcion(self.selectors_descripcion,div_global_info_post)
@@ -438,6 +462,7 @@ class Scraper_Group_FB:
                         except Exception as e:
                                     logging.error(f"Algo está pasando con esto Imagen: {e}")
                         self.obtener_comentario(div_global_info_post,publicacion_id,group_link)
+                        self.obtener_videos(div_global_info_post,publicacion_id)
                         self.procesar_comentarios(div_global_info_post,publicacion_id,group_link)                         
                         yield  texto
                     except Exception as e:

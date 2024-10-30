@@ -1,3 +1,4 @@
+
 import os
 import requests
 import shutil
@@ -14,7 +15,6 @@ def descargar_imagen(url, nombre_archivo):
     try:
         # Envía una solicitud GET a la URL
         respuesta = requests.get(url, stream=True)
-
         # Verifica si la solicitud fue exitosa (código 200)
         if respuesta.status_code == 200:
             # Abre un archivo en modo escritura binaria y guarda la imagen
@@ -37,7 +37,11 @@ ultimo_id = 0
 if os.path.exists(ultimo_id_archivo):
     with open(ultimo_id_archivo, 'r') as file:
         ultimo_id = int(file.read().strip())
-
+else:
+    # Si no existe, crearlo y escribir el valor por defecto 0
+    with open(ultimo_id_archivo, 'w') as file:
+        file.write(str(ultimo_id))
+    print(f"Archivo '{ultimo_id_archivo}' no encontrado. Creando archivo con valor 0.")
 # Consulta para obtener los datos de la tabla imagenes a partir del último ID procesado
 try:
     with conexion.connection.cursor() as cursor:

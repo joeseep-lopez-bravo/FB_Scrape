@@ -322,7 +322,33 @@ class Scraper_Perfil_FB:
                 #print(f"Error en el {selector} : {e}")
                 continue
         return "sin descripcion"
-           
+    def obtener_videos(self,elemento_base,publicacion_id):
+          try:
+            div_video_open=elemento_base.find_element(By.CSS_SELECTOR, "div[role='presentation']")
+            # Crea una instancia de ActionChains
+            acciones = ActionChains(self.driver)
+            # Realiza un doble clic en el elemento
+            acciones.double_click(div_video_open).perform()
+            time.sleep(2)  # Espera para que la acción se complete
+            div_close_video_modal = self.driver.find_element(By.CSS_SELECTOR, "div[aria-label='Cerrar']")
+            # Obtiene la URL actual
+            url_actual = self.driver.current_url
+            print("Aquí hay un video:", url_actual)
+            div_close_video_modal.click()
+            try:
+                    with self.conexion.connection.cursor() as cursor:
+                        consulta = "INSERT INTO videos (url,usuario, publicacion_id) VALUES (%s, %s) "
+                        cursor.execute(consulta, (url_actual,publicacion_id,))
+                        self.conexion.connection.commit() 
+                        print("Comentario insertado con éxitos")
+            except psycopg2.Error as e:
+                            logging.error(f"Error en la base de datos con la tabla videos: {e}")
+            except Exception as e:
+                            logging.error(f"Algo está pasando conn el video insertado: {e}")
+            # no esposible debido a que los enlaces son enlaces temporarles , y estan lbloqueados por blob al comienzo de sus estructura.
+          except:
+                print("No tiene videos ")
+          pass       
     def extraer_datos(self,driver,group_name,perfil_link):
         self.configurar_logger()
         elementos_vistos = set()
@@ -415,6 +441,7 @@ class Scraper_Perfil_FB:
                         except Exception as e:
                                     logging.error(f"Algo está pasando con esto Imagen: {e}")
                         self.obtener_comentario(div_global_info_post,publicacion_id,perfil_link)
+                        self.obtener_videos(div_global_info_post,publicacion_id)
                         self.procesar_comentarios(div_global_info_post,publicacion_id,perfil_link)                         
                         yield  texto
                     except Exception as e:

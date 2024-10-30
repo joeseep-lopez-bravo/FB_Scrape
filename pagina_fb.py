@@ -31,7 +31,8 @@ class Scraper_Pagina_FB:
         #self.username = self.config.get('DEFAULT','usernamekey')
         #self.password = self.config.get('DEFAULT','passwordkey')
         self.pagina_links = [
-            'https://www.facebook.com/santiagoolmedopolicia'
+            'https://www.facebook.com/MultiversoJenomi',
+            #'https://www.facebook.com/santiagoolmedopolicia'
             #"https://www.facebook.com/profile.php?id=100069422640556",
             #"https://www.facebook.com/antenasur"
             #"https://www.facebook.com/profile.php?id=100063545714410",
@@ -313,6 +314,33 @@ class Scraper_Pagina_FB:
         return "sin descripcion"
 
         generador_paginas = pagina_generador(pagina_links)          
+    def obtener_videos(self,elemento_base,publicacion_id):
+          try:
+            div_video_open=elemento_base.find_element(By.CSS_SELECTOR, "div[role='presentation']")
+            # Crea una instancia de ActionChains
+            acciones = ActionChains(self.driver)
+            # Realiza un doble clic en el elemento
+            acciones.double_click(div_video_open).perform()
+            time.sleep(2)  # Espera para que la acción se complete
+            div_close_video_modal = self.driver.find_element(By.CSS_SELECTOR, "div[aria-label='Cerrar']")
+            # Obtiene la URL actual
+            url_actual = self.driver.current_url
+            print("Aquí hay un video:", url_actual)
+            div_close_video_modal.click()
+            try:
+                    with self.conexion.connection.cursor() as cursor:
+                        consulta = "INSERT INTO videos (url, publicacion_id) VALUES (%s, %s) "
+                        cursor.execute(consulta, (url_actual,publicacion_id,))
+                        self.conexion.connection.commit() 
+                        print("Comentario insertado con éxitos")
+            except psycopg2.Error as e:
+                            logging.error(f"Error en la base de datos con la tabla videos: {e}")
+            except Exception as e:
+                            logging.error(f"Algo está pasando conn el video insertado: {e}")
+            # no esposible debido a que los enlaces son enlaces temporarles , y estan lbloqueados por blob al comienzo de sus estructura.
+          except:
+                print("No tiene videos ")
+          pass
     def extraer_datos(self,driver,group_name,group_link):
         self.configurar_logger()
         elementos_vistos = set()
@@ -404,6 +432,7 @@ class Scraper_Pagina_FB:
                         except Exception as e:
                                     logging.error(f"Algo está pasando con esto Imagen: {e}")
                         self.obtener_comentario(div_global_info_post,publicacion_id,group_link)
+                        self.obtener_videos(div_global_info_post,publicacion_id)
                         self.procesar_comentarios( div_global_info_post,publicacion_id,group_link)                         
                         yield  texto
                     except Exception as e:
@@ -423,8 +452,8 @@ class Scraper_Pagina_FB:
                 action.key_down(Keys.CONTROL)
                 # Simular Ctrl + Scroll hacia atrás (Zoom Out)
                 pyautogui.keyDown('ctrl')  # Mantén presionada la tecla Ctrl
-                for _ in range(3):  # Ajusta la cantidad de zoom out según sea necesario
-                    pyautogui.scroll(-150)  # Desplazar hacia atrás para hacer zoom out
+                for _ in range(4):  # Ajusta la cantidad de zoom out según sea necesario
+                    pyautogui.scroll(-200)  # Desplazar hacia atrás para hacer zoom out
                     time.sleep(1)  # Pausa breve para que el navegador procese el zoom
                 pyautogui.keyUp('ctrl') 
                 div_pagina_name = WebDriverWait(self.driver, 10).until(
