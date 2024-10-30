@@ -42,7 +42,6 @@ pip install pyautogui
 
 pip install logging 
 ```
-
 ## Appendix
 
 ### Links to Scrape
@@ -83,8 +82,11 @@ passwordkey3=E721
 
 usernamekey4=gabielmax@gmail.com
 passwordkey4=Aquispepower72
-
 ````
+### Operating Images & Videos
+Both `image_procces.py` & `video_procces.py` files transform the links of the PostgreDB in files jpg & mp4 to future use with deep learning
+or any other purpose that you have in mind.Those files are saved in their respective folders ,each file inside them has a name obtanied from its id & id publiacion to iddentify them in the db.
+ 
 ### Run separately
 
 ```bash

@@ -22,3 +22,9 @@ CREATE TABLE public.imagen (
     contenido VARCHAR,
     type_img VARCHAR
 );
+
+CREATE TABLE public.videos (
+    id SERIAL PRIMARY KEY,
+    url TEXT,
+    publicacion_id INTEGER REFERENCES public.publicacion(id),
+);

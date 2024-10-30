@@ -28,6 +28,11 @@ def ejecutar_script4():
     process = subprocess.Popen(["python", "image_process.py"])
     processes.append(process)
 
+def ejecutar_script5():
+    print("Ejecutando script obtener videos...")
+    process = subprocess.Popen(["python", "video_process.py"])
+    processes.append(process)
+
 # Función para ejecutar todos los scripts de una vez
 def ejecutar_todos_los_scripts():
     ejecutar_script1()
@@ -48,6 +53,7 @@ if __name__ == "__main__":
     try:
         ejecutar_todos_los_scripts()
         ejecutar_script4()
+        ejecutar_script5()
         print("Todos los scripts se están ejecutando.")
     except KeyboardInterrupt:
         print("Cancelando todos los scripts...")
